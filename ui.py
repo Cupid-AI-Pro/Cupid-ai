@@ -84,7 +84,8 @@ body {
 
 st.markdown("<h2 style='text-align:center;'>💘 Cupid AI — Your Campus Match Assistant</h2>", unsafe_allow_html=True)
 
-API_URL = "http://127.0.0.1:8000/chat"
+API_URL = "https://cupid-ai-backend.onrender.com/chat"
+
 
 # --------------- Chat ---------------
 if "messages" not in st.session_state:
