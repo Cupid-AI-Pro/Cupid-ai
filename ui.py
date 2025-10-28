@@ -11,9 +11,7 @@ body {
     background: linear-gradient(135deg,#fbe5e5,#ffdee9,#f4e2d8);
     font-family: 'Poppins', sans-serif;
 }
-#MainMenu {visibility:hidden;}
-footer {visibility:hidden;}
-header {visibility:hidden;}
+#MainMenu, footer, header {visibility:hidden;}
 
 .chat-container {
     background:rgba(255,255,255,0.75);
@@ -50,13 +48,20 @@ header {visibility:hidden;}
     align-self:flex-start;
     max-width:75%;
 }
-.chatbox {
-    display:flex;
-    flex-direction:column;
+
+.typing-dots {
+    color: #888;
+    font-size: 16px;
+    letter-spacing: 2px;
+    margin-top: 5px;
+    animation: blink 1s infinite;
 }
-input, textarea {
-    border-radius:10px !important;
+@keyframes blink {
+    50% { opacity: 0.3; }
 }
+
+.chatbox { display:flex; flex-direction:column; }
+
 .stTextInput>div>div>input {
     border-radius:12px;
     border:1px solid #ff7eb3;
@@ -79,35 +84,43 @@ input, textarea {
 
 st.markdown("<h2 style='text-align:center;'>💘 Cupid AI — Your Campus Match Assistant</h2>", unsafe_allow_html=True)
 
-API_URL = "http://localhost:8000/chat"
+API_URL = "http://127.0.0.1:8000/chat"
 
 # --------------- Chat ---------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# show chat
 with st.container():
     st.markdown("<div class='chat-container'><div class='chatbox'>", unsafe_allow_html=True)
     for msg in st.session_state.messages:
-        if msg["role"] == "user":
-            st.markdown(f"<div class='user-msg'>{msg['content']}</div>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div class='bot-msg'>{msg['content']}</div>", unsafe_allow_html=True)
+        role_class = "user-msg" if msg["role"] == "user" else "bot-msg"
+        st.markdown(f"<div class='{role_class}'>{msg['content']}</div>", unsafe_allow_html=True)
     st.markdown("</div></div>", unsafe_allow_html=True)
 
 st.markdown("---")
+
+# input box
 user_input = st.text_input("💬 Ask Cupid AI anything about love & matches…", key="user_input")
 
 if st.button("Send 💌"):
     if user_input.strip():
+        # show user message instantly
         st.session_state.messages.append({"role": "user", "content": user_input})
-        with st.spinner("Cupid is thinking 💭..."):
+        st.empty()  # placeholder refresh
+
+        with st.spinner("Cupid is typing 💭..."):
             try:
-                res = requests.post(API_URL, json={"question": user_input}, timeout=60)
-                ans = res.json().get("answer", "No response from Cupid.")
-                st.session_state.messages.append({"role": "assistant", "content": ans})
+                res = requests.post(API_URL, json={"question": user_input}, timeout=300)
+                if res.status_code == 200:
+                    ans = res.json().get("answer", "No response from Cupid.")
+                else:
+                    ans = f"⚠️ Backend error: {res.status_code}"
             except Exception as e:
-                st.session_state.messages.append({"role": "assistant", "content": f"⚠️ Error: {e}"})
+                ans = f"⚠️ Error: {e}"
+
+        # add bot reply
+        st.session_state.messages.append({"role": "assistant", "content": ans})
         time.sleep(0.3)
         st.rerun()
-
 
