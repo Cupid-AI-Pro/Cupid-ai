@@ -1,8 +1,5 @@
 fastapi
 uvicorn
-requests
-streamlit
-sentence-transformers
-faiss-cpu
-python-dotenv
 groq
+python-dotenv
+
