@@ -15,10 +15,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ---------- ROOT ROUTE ----------
+@app.get("/")
+async def root():
+    return {"message": "Cupid AI backend is live! Use POST /chat to talk 💘"}
+
+
 # ---------- AUTO ROUND SYSTEM ----------
 START_ROUND_DATE = datetime(2025, 11, 1)
 ROUND_GAP_DAYS = 9  # new round every 10 days approx
 EMAIL = "cupid.livepro@gmail.com"
+
 
 def get_next_round():
     """Auto-calculate the next upcoming round."""
@@ -27,6 +34,7 @@ def get_next_round():
     next_round = max(1, (days_since_start // ROUND_GAP_DAYS) + 2)
     next_date = START_ROUND_DATE + timedelta(days=(next_round - 1) * ROUND_GAP_DAYS)
     return next_round, next_date.strftime("%d %B, %Y")
+
 
 def check_special_queries(question: str):
     """Detect if user is asking about rounds, links, or support."""
@@ -43,6 +51,7 @@ def check_special_queries(question: str):
     if any(word in q for word in ["talk", "contact", "executive", "email", "help", "support"]):
         return f"You can contact our team anytime at {EMAIL} for personal assistance. 💌"
     return None
+
 
 # ---------- LANGUAGE DETECTOR ----------
 def detect_hindi(text):
@@ -153,5 +162,6 @@ async def chat(request: Request):
     except Exception as e:
         print("Error in /chat:", e)
         return {"answer": f"Server error: {str(e)}"}
+
 
 
