@@ -20,6 +20,10 @@ app.add_middleware(
 async def root():
     return {"message": "Cupid AI backend is live! Use POST /chat to talk 💘"}
 
+# ---------- PING ROUTE (for UptimeRobot) ----------
+@app.get("/ping")
+async def ping():
+    return {"status": "alive", "message": "Cupid AI backend is awake 💘"}
 
 # ---------- AUTO ROUND SYSTEM ----------
 START_ROUND_DATE = datetime(2025, 11, 1)
@@ -162,6 +166,7 @@ async def chat(request: Request):
     except Exception as e:
         print("Error in /chat:", e)
         return {"answer": f"Server error: {str(e)}"}
+
 
 
 
