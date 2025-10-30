@@ -19,6 +19,10 @@ app.add_middleware(
 @app.get("/")
 async def root():
     return {"message": "Cupid AI backend is live! Use POST /chat to talk 💘"}
+@app.head("/")
+async def head_root():
+    return {"status": "ok"}
+
 
 # ---------- PING ROUTE (for UptimeRobot) ----------
 @app.get("/ping")
