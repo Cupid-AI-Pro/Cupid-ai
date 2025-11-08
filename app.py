@@ -4,11 +4,11 @@ import os
 from groq import Groq
 from datetime import datetime, timedelta
 import re
-import time  # 👈 added for sleep delay
-import asyncio  # 👈 for async sleep
+import asyncio  # for async delay
 
 app = FastAPI()
 
+# Allow all CORS requests (for frontend integration)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,16 +29,20 @@ async def head_root():
 async def ping():
     return {"status": "alive", "message": "Cupid AI backend is awake 💘"}
 
+# ---------- Cupid constants ----------
 START_ROUND_DATE = datetime(2025, 11, 1)
 ROUND_GAP_DAYS = 9
 EMAIL = "cupid.livepro@gmail.com"
 
+
+# ---------- Helper functions ----------
 def get_next_round():
     today = datetime.now()
     days_since_start = (today - START_ROUND_DATE).days
     next_round = max(1, (days_since_start // ROUND_GAP_DAYS) + 2)
     next_date = START_ROUND_DATE + timedelta(days=(next_round - 1) * ROUND_GAP_DAYS)
     return next_round, next_date.strftime("%d %B, %Y")
+
 
 def check_special_queries(question: str):
     q = question.lower()
@@ -55,6 +59,7 @@ def check_special_queries(question: str):
         return f"You can contact our team anytime at {EMAIL} for personal assistance. 💌"
     return None
 
+
 def detect_hindi(text):
     devanagari = re.search(r'[\u0900-\u097F]', text)
     common_hindi_words = any(
@@ -63,6 +68,8 @@ def detect_hindi(text):
     )
     return bool(devanagari or common_hindi_words)
 
+
+# ---------- Main chat endpoint ----------
 @app.post("/chat")
 async def chat(request: Request):
     try:
@@ -72,6 +79,7 @@ async def chat(request: Request):
         if not question:
             return {"answer": "Ask me anything about Cupid 💘 — plans, process, or how to join!"}
 
+        # check for simple known queries first
         special_reply = check_special_queries(question)
         if special_reply:
             return {"answer": special_reply}
@@ -89,9 +97,10 @@ async def chat(request: Request):
             else "User is using English — reply in friendly and slightly formal English. Be clear, warm, and humanlike."
         )
 
-        # ---------- RETRY LOGIC FOR 429 ERROR ----------
+        # ---------- RETRY HANDLING for rate limits ----------
         max_retries = 3
         delay_seconds = 5
+
         for attempt in range(max_retries):
             try:
                 res = client.chat.completions.create(
@@ -104,11 +113,10 @@ async def chat(request: Request):
                                 f"{tone_instruction}\n\n"
                                 "Your vibe: warm, slightly flirty but respectful, casual college-student tone. "
                                 "You mix English + Hinglish naturally and answer like a real person.\n\n"
-                                "🎯 **About Cupid:**\n"
+                                "🎯 About Cupid:\n"
                                 "Cupid helps college students find relationships, friendships, and meaningful connections from nearby campuses. "
-                                "Every ~10 days, a new matchmaking round starts — the Google Form link is shared on Cupid’s Instagram story for 24 hours. "
-                                "After submission, matches are released via email within 1–2 days.\n\n"
-                                "📝 **Form Process:** ... (rest of your text unchanged) ..."
+                                "Every ~10 days, a new matchmaking round starts — the form link is shared on Instagram for 24 hours. "
+                                "After submission, matches are released via email within 1–2 days."
                             ),
                         },
                         {"role": "user", "content": question},
@@ -118,21 +126,20 @@ async def chat(request: Request):
 
             except Exception as e:
                 if "429" in str(e):
+                    print(f"⚠️ [Retry {attempt + 1}/{max_retries}] Too Many Requests — waiting {delay_seconds}s")
                     if attempt < max_retries - 1:
-                        print(f"⚠️ 429 Too Many Requests — retrying in {delay_seconds}s (Attempt {attempt+1})")
-                        # Inform the user instantly
-                        if attempt == 0:
-                            return {"answer": "Cupid AI is a bit overloaded right now 💘. Please wait a few seconds while I fetch your reply..."}
                         await asyncio.sleep(delay_seconds)
                         continue
-                    else:
-                        return {"answer": "Too many users are chatting right now 💖. Please try again in a minute!"}
+                    return {
+                        "answer": "Cupid AI is receiving a lot of messages right now 💞. Please try again in a few seconds!"
+                    }
                 else:
-                    raise e
+                    print("❌ Unexpected error:", e)
+                    break
 
     except Exception as e:
-        print("Error in /chat:", e)
-        return {"answer": "Cupid AI is taking a short break 💞 — please try again in a few seconds."}
+        print("💥 Error in /chat:", e)
+        return {"answer": "Cupid AI is taking a short break 💞 — please try again soon."}
 
 
 
